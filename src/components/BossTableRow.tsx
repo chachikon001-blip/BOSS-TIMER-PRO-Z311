@@ -1,0 +1,352 @@
+import React, { useState } from 'react';
+import { BossRecord } from '../types';
+import { formatHoursAndMinutes } from '../utils/formatTime';
+import {
+  Star,
+  Clock,
+  RotateCcw,
+  Zap,
+  Volume2,
+  Edit2,
+  Edit3,
+  MapPin,
+  Shield,
+  Swords,
+  Sparkles,
+  Check,
+  X,
+} from 'lucide-react';
+
+interface BossTableRowProps {
+  boss: BossRecord;
+  currentTime: Date;
+  onQuickKill: (boss: BossRecord) => void;
+  onCustomTime: (boss: BossRecord) => void;
+  onResetTime: (boss: BossRecord) => void;
+  onToggleFavorite: (boss: BossRecord) => void;
+  onTestVoice: (boss: BossRecord) => void;
+  onEditBoss?: (boss: BossRecord) => void;
+  onUpdateSpawnTime?: (boss: BossRecord, newSpawnDate: Date) => void;
+}
+
+export const BossTableRow: React.FC<BossTableRowProps> = ({
+  boss,
+  currentTime,
+  onQuickKill,
+  onCustomTime,
+  onResetTime,
+  onToggleFavorite,
+  onTestVoice,
+  onEditBoss,
+  onUpdateSpawnTime,
+}) => {
+  const [isEditingTime, setIsEditingTime] = useState(false);
+  const [inputTimeStr, setInputTimeStr] = useState('');
+
+  // Time calculations
+  let status: 'unknown' | 'spawned' | 'soon' | 'cooldown' = 'unknown';
+  let diffMs = 0;
+  let countdownText = '--:--:--';
+  let timePillText = '--:--';
+
+  if (boss.nextSpawnAt) {
+    const spawnDate = new Date(boss.nextSpawnAt);
+    if (!isNaN(spawnDate.getTime())) {
+      timePillText = spawnDate.toLocaleTimeString('th-TH', {
+        timeZone: 'Asia/Bangkok',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      diffMs = spawnDate.getTime() - currentTime.getTime();
+
+      if (diffMs <= 0) {
+        status = 'spawned';
+        const passedSec = Math.floor(Math.abs(diffMs) / 1000);
+        const passedMin = Math.floor(passedSec / 60);
+        const remSec = passedSec % 60;
+        countdownText = `เกินมา ${passedMin}:${remSec.toString().padStart(2, '0')}`;
+      } else {
+        const totalSec = Math.floor(diffMs / 1000);
+        const hours = Math.floor(totalSec / 3600);
+        const minutes = Math.floor((totalSec % 3600) / 60);
+        const seconds = totalSec % 60;
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        countdownText = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+
+        if (diffMs <= 15 * 60 * 1000) {
+          status = 'soon';
+        } else {
+          status = 'cooldown';
+        }
+      }
+    }
+  }
+
+  const handleStartEditTime = () => {
+    let initial = '';
+    if (boss.nextSpawnAt) {
+      const d = new Date(boss.nextSpawnAt);
+      if (!isNaN(d.getTime())) {
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        initial = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      }
+    }
+    if (!initial) {
+      const now = new Date();
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      initial = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    }
+    setInputTimeStr(initial);
+    setIsEditingTime(true);
+  };
+
+  const handleSaveInlineTime = () => {
+    if (!inputTimeStr.trim()) {
+      setIsEditingTime(false);
+      return;
+    }
+    const [hhStr, mmStr] = inputTimeStr.split(':');
+    const h = parseInt(hhStr, 10);
+    const m = parseInt(mmStr, 10);
+    if (isNaN(h) || isNaN(m)) {
+      setIsEditingTime(false);
+      return;
+    }
+
+    const baseDate = boss.nextSpawnAt ? new Date(boss.nextSpawnAt) : new Date();
+    baseDate.setHours(h);
+    baseDate.setMinutes(m);
+    baseDate.setSeconds(0);
+    baseDate.setMilliseconds(0);
+
+    onUpdateSpawnTime?.(boss, baseDate);
+    setIsEditingTime(false);
+  };
+
+  const isServer1 = boss.serverId === 'server_1';
+
+  return (
+    <tr
+      className={`border-b border-[#141d33] transition-colors hover:bg-[#11192d]/70 ${
+        status === 'spawned'
+          ? 'bg-rose-950/20'
+          : status === 'soon'
+          ? 'bg-amber-950/15'
+          : 'bg-[#0d1322]/80'
+      }`}
+    >
+      {/* Favorite Star */}
+      <td className="w-12 px-4 py-4 text-center">
+        <button
+          onClick={() => onToggleFavorite(boss)}
+          className="text-stone-600 hover:text-amber-400 transition-colors cursor-pointer"
+          title={boss.isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มเป็นรายการโปรด'}
+        >
+          <Star
+            className={`w-5 h-5 transition-transform hover:scale-110 ${
+              boss.isFavorite ? 'text-amber-400 fill-amber-400' : 'text-stone-600'
+            }`}
+          />
+        </button>
+      </td>
+
+      {/* Boss Info & Server */}
+      <td className="px-4 py-4">
+        <div className="flex items-center gap-2 flex-wrap mb-1">
+          {/* Number Badge */}
+          {boss.bossNumber && (
+            <span className="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#0f2c4e] text-[#38bdf8] border border-[#0284c7]/40 shadow-sm">
+              #{boss.bossNumber}
+            </span>
+          )}
+
+          {/* Boss Name */}
+          <span className="text-base font-bold text-white tracking-wide">
+            {boss.nameTh} {boss.nameEn ? `- ${boss.nameEn}` : ''}
+          </span>
+
+          {/* Server Badge */}
+          <span
+            className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1 ${
+              isServer1
+                ? 'border-amber-500/70 text-amber-300 bg-amber-500/10'
+                : 'border-purple-500/70 text-purple-300 bg-purple-500/10'
+            }`}
+          >
+            {isServer1 ? (
+              <Shield className="w-3.5 h-3.5 text-amber-400" />
+            ) : (
+              <Swords className="w-3.5 h-3.5 text-purple-400" />
+            )}
+            <span>{boss.serverName}</span>
+          </span>
+
+          {boss.isCustom && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-0.5">
+              <Sparkles className="w-2.5 h-2.5" /> กำหนดเอง
+            </span>
+          )}
+        </div>
+
+        {/* Location & Cooldown Meta */}
+        <div className="flex items-center gap-2 text-xs text-stone-400 flex-wrap">
+          <span className="inline-flex items-center gap-1 text-stone-400">
+            <MapPin className="w-3 h-3 text-stone-500" />
+            {boss.location || 'ตามแมพ / พื้นที่ล่า'}
+          </span>
+          <span className="text-stone-600">•</span>
+          <span className="text-stone-300">
+            รอบ {formatHoursAndMinutes(boss.cooldownHours)}
+          </span>
+          {boss.rebootHours != null && (
+            <>
+              <span className="text-stone-600">•</span>
+              <span className="text-amber-400/90 font-mono">
+                รีบูท {formatHoursAndMinutes(boss.rebootHours)}
+              </span>
+            </>
+          )}
+        </div>
+      </td>
+
+      {/* Spawn Time GMT+7 & Countdown */}
+      <td className="px-4 py-4 text-center">
+        <div className="inline-flex flex-col items-center">
+          <div className="inline-flex items-center gap-2">
+            {isEditingTime ? (
+              <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#070b14] border-2 border-amber-500 shadow-xl shadow-amber-950/50 animate-in fade-in">
+                <input
+                  type="time"
+                  autoFocus
+                  value={inputTimeStr}
+                  onChange={(e) => setInputTimeStr(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveInlineTime();
+                    if (e.key === 'Escape') setIsEditingTime(false);
+                  }}
+                  className="bg-transparent text-amber-300 font-mono font-bold text-sm sm:text-base focus:outline-none w-24"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveInlineTime}
+                  className="p-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer"
+                  title="บันทึกเวลาใหม่"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingTime(false)}
+                  className="p-1 rounded bg-stone-800 hover:bg-stone-700 text-stone-300 transition-colors cursor-pointer"
+                  title="ยกเลิก"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div
+                onClick={handleStartEditTime}
+                className={`group px-3 py-1 rounded-lg border font-mono font-bold text-sm sm:text-base flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 hover:border-amber-400 hover:ring-2 hover:ring-amber-500/40 select-none ${
+                  status === 'spawned'
+                    ? 'bg-rose-950/80 border-rose-500 text-rose-300 animate-pulse'
+                    : status === 'soon'
+                    ? 'bg-amber-950/70 border-amber-500/80 text-amber-300'
+                    : status === 'cooldown'
+                    ? 'bg-[#090e1a] border-[#1b294b] text-white'
+                    : 'bg-[#090e1a] border-stone-800 text-stone-500'
+                }`}
+                title="คลิกตรงนี้เพื่อแก้ไขเวลาเกิดได้ทันที"
+              >
+                <span>{timePillText}</span>
+                <Clock className="w-3.5 h-3.5 text-stone-400 group-hover:text-amber-400 transition-colors" />
+                <span className="text-xs font-normal text-stone-400">น.</span>
+                <Edit2 className="w-3 h-3 text-stone-500 opacity-60 group-hover:opacity-100 group-hover:text-amber-400 transition-all ml-0.5" />
+              </div>
+            )}
+
+            {/* Reset button next to time pill */}
+            <button
+              onClick={() => onResetTime(boss)}
+              className="p-1 rounded-full text-stone-500 hover:text-rose-400 hover:bg-stone-800 transition-colors cursor-pointer"
+              title="รีเซ็ตเวลาบอสเป็น --:-- น. ทันที"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Countdown text below pill */}
+          <div className="mt-1 text-xs font-mono">
+            {status === 'spawned' ? (
+              <span className="text-rose-400 font-bold">{countdownText}</span>
+            ) : status === 'unknown' ? (
+              <span className="text-stone-600">นับถอยหลัง (--:--:--)</span>
+            ) : (
+              <span
+                className={
+                  status === 'soon' ? 'text-amber-400 font-semibold' : 'text-stone-400'
+                }
+              >
+                นับถอยหลัง ({countdownText})
+              </span>
+            )}
+          </div>
+        </div>
+      </td>
+
+      {/* Update Time Buttons */}
+      <td className="px-4 py-4 text-center">
+        <div className="inline-flex items-center justify-center gap-1.5">
+          {/* Main Orange Update Button: เวลาเกิดล่าสุด + คูลดาวน์ */}
+          <button
+            onClick={() => onQuickKill(boss)}
+            className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 active:scale-95 text-black font-extrabold text-xs shadow-md shadow-orange-950/40 transition-all cursor-pointer whitespace-nowrap"
+            title="นำเวลาเกิดล่าสุด + คูลดาวน์รอบเกิดใหม่"
+          >
+            <Zap className="w-3.5 h-3.5 fill-black" />
+            <span>อัปเดต</span>
+          </button>
+
+          {/* Custom Time Clock Button */}
+          <button
+            onClick={() => onCustomTime(boss)}
+            className="p-2 rounded-lg bg-[#141e35] hover:bg-[#1c2a4b] text-stone-300 hover:text-white border border-[#21325c] transition-colors cursor-pointer"
+            title="ระบุเวลาตายย้อนหลัง หรือเลือกนาทีอิสระ"
+          >
+            <Clock className="w-4 h-4" />
+          </button>
+
+          {/* Direct Reset Button */}
+          <button
+            onClick={() => onResetTime(boss)}
+            className="p-2 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-100 border border-rose-800/50 transition-colors cursor-pointer"
+            title="รีเซ็ตเวลาบอสตัวนี้เป็น --:-- น. ทันที"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+        </div>
+      </td>
+
+      {/* Tools: Voice test & Edit */}
+      <td className="w-24 px-4 py-4 text-center">
+        <div className="flex items-center justify-center gap-2 text-stone-400">
+          <button
+            onClick={() => onTestVoice(boss)}
+            className="p-1.5 rounded-lg hover:bg-stone-800 hover:text-amber-400 transition-colors cursor-pointer"
+            title="ทดสอบอ่านเสียงแจ้งเตือนบอสตัวนี้"
+          >
+            <Volume2 className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => onEditBoss?.(boss)}
+            className="p-1.5 rounded-lg hover:bg-stone-800 hover:text-sky-400 transition-colors cursor-pointer"
+            title="แก้ไขข้อมูลบอส"
+          >
+            <Edit3 className="w-4 h-4" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+};

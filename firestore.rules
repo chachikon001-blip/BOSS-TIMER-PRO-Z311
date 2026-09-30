@@ -1,0 +1,83 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidBoss(data) {
+      return data.keys().hasAll(['id', 'serverId', 'nameTh', 'cooldownHours', 'updatedAt']) &&
+             data.keys().hasOnly(['id', 'bossNumber', 'bossKey', 'serverId', 'serverName', 'serverTag', 'nameTh', 'nameEn', 'location', 'cooldownHours', 'rebootHours', 'lastKilledAt', 'nextSpawnAt', 'updatedBy', 'updatedByUid', 'updatedAt', 'isCustom', 'isFavorite']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.serverId is string && data.serverId.size() <= 64 &&
+             data.nameTh is string && data.nameTh.size() <= 128 &&
+             data.cooldownHours is number && data.cooldownHours >= 0 && data.cooldownHours <= 100 &&
+             data.updatedAt is string && data.updatedAt.size() <= 64 &&
+             (!('bossNumber' in data) || (data.bossNumber is number)) &&
+             (!('serverName' in data) || (data.serverName is string && data.serverName.size() <= 100)) &&
+             (!('serverTag' in data) || (data.serverTag is string && data.serverTag.size() <= 32)) &&
+             (!('location' in data) || (data.location is string && data.location.size() <= 256)) &&
+             (!('nameEn' in data) || (data.nameEn is string && data.nameEn.size() <= 128)) &&
+             (!('bossKey' in data) || (data.bossKey is string && data.bossKey.size() <= 128)) &&
+             (!('rebootHours' in data) || (data.rebootHours == null || (data.rebootHours is number && data.rebootHours >= 0 && data.rebootHours <= 100))) &&
+             (!('lastKilledAt' in data) || (data.lastKilledAt == null || (data.lastKilledAt is string && data.lastKilledAt.size() <= 64))) &&
+             (!('nextSpawnAt' in data) || (data.nextSpawnAt == null || (data.nextSpawnAt is string && data.nextSpawnAt.size() <= 64))) &&
+             (!('updatedBy' in data) || (data.updatedBy is string && data.updatedBy.size() <= 128)) &&
+             (!('updatedByUid' in data) || (data.updatedByUid is string && data.updatedByUid.size() <= 128)) &&
+             (!('isCustom' in data) || (data.isCustom is bool)) &&
+             (!('isFavorite' in data) || (data.isFavorite is bool));
+    }
+
+    function isValidServerConfig(data) {
+      return data.keys().hasAll(['id', 'updatedAt']) &&
+             data.keys().hasOnly(['id', 'discordWebhookUrl', 'lastRebootAt', 'updatedBy', 'updatedAt']) &&
+             data.id is string && data.id.size() <= 64 &&
+             data.updatedAt is string && data.updatedAt.size() <= 64 &&
+             (!('discordWebhookUrl' in data) || (data.discordWebhookUrl == null || (data.discordWebhookUrl is string && data.discordWebhookUrl.size() <= 512))) &&
+             (!('lastRebootAt' in data) || (data.lastRebootAt == null || (data.lastRebootAt is string && data.lastRebootAt.size() <= 64))) &&
+             (!('updatedBy' in data) || (data.updatedBy == null || (data.updatedBy is string && data.updatedBy.size() <= 128)));
+    }
+
+    // Connection testing endpoint
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Boss timer records
+    match /bosses/{bossId} {
+      allow read: if true;
+      allow create, update: if isValidId(bossId) && isValidBoss(incoming());
+      allow delete: if isValidId(bossId);
+    }
+
+    // Server configurations
+    match /server_configs/{configId} {
+      allow read: if true;
+      allow create, update: if isValidId(configId) && isValidServerConfig(incoming());
+      allow delete: if isValidId(configId);
+    }
+  }
+}

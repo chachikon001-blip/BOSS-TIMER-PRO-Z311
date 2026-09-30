@@ -1,0 +1,6 @@
+{
+  "name": "BOSS TIMER PRO Z3",
+  "description": "ระบบบันทึกเวลาแจ้งเตือนบอสแบบเรียลไทม์ เสียงพูดแจ้งเตือน ส่งข้อความเข้า Discord และซิงค์หลายเซิร์ฟเวอร์",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

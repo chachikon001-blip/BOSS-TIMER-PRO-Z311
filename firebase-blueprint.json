@@ -1,0 +1,144 @@
+{
+  "entities": {
+    "BossRecord": {
+      "title": "BossRecord",
+      "description": "Represents a boss spawn timer tracking entry for a specific server",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier composed of serverId and bossKey",
+          "maxLength": 128
+        },
+        "bossNumber": {
+          "type": "number",
+          "description": "Display number of the boss"
+        },
+        "bossKey": {
+          "type": "string",
+          "description": "Unique key identifier of the boss type",
+          "maxLength": 128
+        },
+        "serverId": {
+          "type": "string",
+          "description": "Identifier for the game server, e.g. server_1 or server_2",
+          "maxLength": 64
+        },
+        "serverName": {
+          "type": "string",
+          "description": "Display name of the server",
+          "maxLength": 100
+        },
+        "serverTag": {
+          "type": "string",
+          "description": "Short tag of the server like [T3]",
+          "maxLength": 32
+        },
+        "nameTh": {
+          "type": "string",
+          "description": "Thai name of the boss",
+          "maxLength": 128
+        },
+        "nameEn": {
+          "type": "string",
+          "description": "English name of the boss",
+          "maxLength": 128
+        },
+        "location": {
+          "type": "string",
+          "description": "Location description or map area",
+          "maxLength": 256
+        },
+        "cooldownHours": {
+          "type": "number",
+          "description": "Normal respawn cooldown duration in hours"
+        },
+        "rebootHours": {
+          "type": "number",
+          "description": "Respawn cooldown duration after server maintenance/reboot in hours"
+        },
+        "lastKilledAt": {
+          "type": "string",
+          "description": "ISO timestamp when the boss was last killed or recorded",
+          "maxLength": 64
+        },
+        "nextSpawnAt": {
+          "type": "string",
+          "description": "ISO timestamp when the boss is predicted to respawn",
+          "maxLength": 64
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "Name or identifier of the user who performed the last update",
+          "maxLength": 128
+        },
+        "updatedByUid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the updater",
+          "maxLength": 128
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of the record update",
+          "maxLength": 64
+        },
+        "isCustom": {
+          "type": "boolean",
+          "description": "Flag indicating if the boss was created manually by users"
+        },
+        "isFavorite": {
+          "type": "boolean",
+          "description": "Flag indicating if the boss is marked favorite"
+        }
+      },
+      "required": ["id", "serverId", "nameTh", "cooldownHours", "updatedAt"]
+    },
+    "ServerConfig": {
+      "title": "ServerConfig",
+      "description": "Global or per-server configuration including Discord webhook settings and reboot timestamp",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Configuration document ID",
+          "maxLength": 64
+        },
+        "discordWebhookUrl": {
+          "type": "string",
+          "description": "Discord webhook URL for notifications",
+          "maxLength": 512
+        },
+        "lastRebootAt": {
+          "type": "string",
+          "description": "ISO timestamp when the server was rebooted",
+          "maxLength": 64
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "Name or email of updater",
+          "maxLength": 128
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of update",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/bosses/{bossId}": {
+      "schema": {
+        "$ref": "#/entities/BossRecord"
+      },
+      "description": "Collection of boss timers across servers"
+    },
+    "/server_configs/{configId}": {
+      "schema": {
+        "$ref": "#/entities/ServerConfig"
+      },
+      "description": "Configuration records for server settings and discord integrations"
+    }
+  }
+}
