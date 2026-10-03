@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BossRecord } from '../types';
-import { formatHoursAndMinutes } from '../utils/formatTime';
+import { formatHoursAndMinutes, formatBossForSheets } from '../utils/formatTime';
 import {
   Star,
   Clock,
@@ -15,6 +15,7 @@ import {
   Sparkles,
   Check,
   X,
+  Copy,
 } from 'lucide-react';
 
 interface BossTableRowProps {
@@ -42,6 +43,15 @@ export const BossTableRow: React.FC<BossTableRowProps> = ({
 }) => {
   const [isEditingTime, setIsEditingTime] = useState(false);
   const [inputTimeStr, setInputTimeStr] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopyForSheets = () => {
+    const text = formatBossForSheets(boss);
+    navigator.clipboard.writeText(text).then(() => {
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    });
+  };
 
   // Time calculations
   let status: 'unknown' | 'spawned' | 'soon' | 'cooldown' = 'unknown';
@@ -327,9 +337,25 @@ export const BossTableRow: React.FC<BossTableRowProps> = ({
         </div>
       </td>
 
-      {/* Tools: Voice test & Edit */}
-      <td className="w-24 px-4 py-4 text-center">
-        <div className="flex items-center justify-center gap-2 text-stone-400">
+      {/* Tools: Copy for Sheets, Voice test & Edit */}
+      <td className="w-28 px-3 py-4 text-center">
+        <div className="flex items-center justify-center gap-1.5 text-stone-400">
+          <button
+            onClick={handleCopyForSheets}
+            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+              isCopied
+                ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-600/70 scale-105 shadow-sm shadow-emerald-950/50'
+                : 'hover:bg-stone-800 text-stone-400 hover:text-emerald-400'
+            }`}
+            title={
+              isCopied
+                ? 'คัดลอกลงคลิปบอร์ดแล้ว! (วางในชีตได้เลย)'
+                : 'คัดลอก [ชื่อบอส, เวลาตาย, เวลาเกิด] เพื่อนำไปวางใน Google Sheets หรือ Excel ทันที'
+            }
+          >
+            {isCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+          </button>
+
           <button
             onClick={() => onTestVoice(boss)}
             className="p-1.5 rounded-lg hover:bg-stone-800 hover:text-amber-400 transition-colors cursor-pointer"

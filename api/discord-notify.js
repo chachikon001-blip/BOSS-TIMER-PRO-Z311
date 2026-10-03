@@ -1,7 +1,5 @@
-import type { Request, Response } from 'express';
-
 // Vercel Serverless Function handler for Discord Webhook proxy
-export default async function handler(req: any, res: any) {
+export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -52,7 +50,7 @@ export default async function handler(req: any, res: any) {
     }
 
     res.status(200).json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     res.status(500).json({ error: error?.message || 'Internal Server Error' });
   }
 }

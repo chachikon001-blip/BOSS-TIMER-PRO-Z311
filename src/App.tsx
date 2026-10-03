@@ -40,6 +40,8 @@ import { SettingsModal } from './components/SettingsModal';
 import { EditServerModal } from './components/EditServerModal';
 import { EditBossModal } from './components/EditBossModal';
 import { SendTop30Modal } from './components/SendTop30Modal';
+import { PasteSheetModal } from './components/PasteSheetModal';
+import { formatBossesForSheets, copyColoredBossesToClipboard } from './utils/formatTime';
 
 const STORAGE_KEY_SETTINGS = 'boss_timer_pro_settings_v4';
 const STORAGE_KEY_LOCAL_BOSSES = 'boss_timer_pro_z3_bosses_v4';
@@ -183,6 +185,8 @@ export default function App() {
   const [isAddBossOpen, setIsAddBossOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSendTop30Open, setIsSendTop30Open] = useState(false);
+  const [isPasteSheetOpen, setIsPasteSheetOpen] = useState(false);
+  const [isCopiedAll, setIsCopiedAll] = useState(false);
   const [editingServer, setEditingServer] = useState<'server_1' | 'server_2' | null>(null);
   const [editingBoss, setEditingBoss] = useState<BossRecord | null>(null);
 
@@ -537,6 +541,63 @@ export default function App() {
     });
   };
 
+  // Apply batch import from Google Sheets / Excel
+  const handleApplySheetImport = async (
+    updates: {
+      bossId: string;
+      nextSpawnAt: string | null;
+      lastKilledAt: string | null;
+      cooldownHours?: number;
+    }[]
+  ) => {
+    if (updates.length === 0) return;
+
+    const updateMap = new Map(updates.map((u) => [u.bossId, u]));
+    const updatedByName = user?.displayName || user?.email || 'วางจากชีต';
+
+    const nextList = bosses.map((b) => {
+      const u = updateMap.get(b.id);
+      if (!u) return b;
+      return {
+        ...b,
+        nextSpawnAt: u.nextSpawnAt,
+        lastKilledAt: u.lastKilledAt ?? b.lastKilledAt,
+        cooldownHours: u.cooldownHours ?? b.cooldownHours,
+        updatedBy: updatedByName,
+        updatedByUid: user?.uid || 'anonymous',
+        updatedAt: new Date().toISOString(),
+      };
+    });
+
+    setBosses(nextList);
+    try {
+      localStorage.setItem(STORAGE_KEY_LOCAL_BOSSES, JSON.stringify(nextList));
+    } catch (e) {
+      console.warn('LocalStorage save error:', e);
+    }
+
+    soundService.playChime('spawn', 0.8);
+
+    // Save to Firestore
+    try {
+      for (const u of updates) {
+        const docRef = doc(db, 'bosses', u.bossId);
+        const dataToSave: any = {
+          nextSpawnAt: u.nextSpawnAt,
+          updatedBy: updatedByName,
+          updatedByUid: user?.uid || 'anonymous',
+          updatedAt: new Date().toISOString(),
+        };
+        if (u.lastKilledAt !== undefined) dataToSave.lastKilledAt = u.lastKilledAt;
+        if (u.cooldownHours !== undefined) dataToSave.cooldownHours = u.cooldownHours;
+
+        await setDoc(docRef, dataToSave, { merge: true });
+      }
+    } catch (e) {
+      console.warn('Firestore sheet import write error:', e);
+    }
+  };
+
   // Server Reboot Action
   const handleConfirmReboot = async (
     targetServer: ServerFilter,
@@ -763,9 +824,23 @@ export default function App() {
     };
   }, [bosses]);
 
+  // Handle Copy All for Google Sheets from Top Navbar (Copy ONLY Main Server with Colors)
+  const mainServerBosses = useMemo(() => {
+    return bosses.filter((b) => b.serverId === 'server_1');
+  }, [bosses]);
+
+  const handleCopyAllForSheets = async () => {
+    if (mainServerBosses.length === 0) return;
+    const success = await copyColoredBossesToClipboard(mainServerBosses);
+    if (success) {
+      setIsCopiedAll(true);
+      setTimeout(() => setIsCopiedAll(false), 2500);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#070b14] text-stone-100 flex flex-col font-sans selection:bg-amber-500 selection:text-black">
-      {/* Top Navbar */}
+      {/* Top Navbar with Quick Copy & Paste for Sheets */}
       <Navbar
         onOpenAddBoss={() => setIsAddBossOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
@@ -779,6 +854,10 @@ export default function App() {
         }
         user={user}
         onGoogleSignIn={handleGoogleSignIn}
+        onCopyAllForSheets={handleCopyAllForSheets}
+        isCopiedAll={isCopiedAll}
+        copyCount={mainServerBosses.length}
+        onOpenPasteSheet={() => setIsPasteSheetOpen(true)}
       />
 
       {/* Main Container */}
@@ -924,6 +1003,18 @@ export default function App() {
         settings={settings}
         currentFilter={serverFilter}
         onOpenSettings={() => setIsSettingsOpen(true)}
+      />
+
+      <PasteSheetModal
+        isOpen={isPasteSheetOpen}
+        onClose={() => setIsPasteSheetOpen(false)}
+        bosses={bosses}
+        currentServerFilter={serverFilter}
+        server1Name={settings.server1Name}
+        server1Tag={settings.server1Tag}
+        server2Name={settings.server2Name}
+        server2Tag={settings.server2Tag}
+        onApplyImport={handleApplySheetImport}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BossRecord } from '../types';
-import { formatHoursAndMinutes } from '../utils/formatTime';
+import { formatHoursAndMinutes, formatBossForSheets } from '../utils/formatTime';
 import {
   Clock,
   RotateCcw,
@@ -16,6 +16,7 @@ import {
   ShieldAlert,
   Check,
   X,
+  Copy,
 } from 'lucide-react';
 
 interface BossCardProps {
@@ -45,6 +46,15 @@ export const BossCard: React.FC<BossCardProps> = ({
 }) => {
   const [isEditingTime, setIsEditingTime] = useState(false);
   const [inputTimeStr, setInputTimeStr] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopyForSheets = () => {
+    const text = formatBossForSheets(boss);
+    navigator.clipboard.writeText(text).then(() => {
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    });
+  };
   let status: 'unknown' | 'spawned' | 'soon' | 'cooldown' = 'unknown';
   let diffMs = 0;
   let countdownText = '--:--:--';
@@ -317,6 +327,22 @@ export const BossCard: React.FC<BossCardProps> = ({
           title="รีเซ็ตเวลาบอสตัวนี้เป็น --:-- น. ทันที"
         >
           <RotateCcw className="w-4 h-4" />
+        </button>
+
+        <button
+          onClick={handleCopyForSheets}
+          className={`p-2 rounded-lg transition-all cursor-pointer ${
+            isCopied
+              ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-600/70 scale-105 shadow-sm shadow-emerald-950/40'
+              : 'bg-[#141e35] hover:bg-[#1c2a4b] text-stone-400 hover:text-emerald-400 border border-[#21325c]'
+          }`}
+          title={
+            isCopied
+              ? 'คัดลอกลงคลิปบอร์ดแล้ว! (วางในชีตได้ทันที)'
+              : 'คัดลอก [ชื่อบอส, เวลาตาย, เวลาเกิด] ไปวางใน Google Sheets / Excel'
+          }
+        >
+          {isCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
         </button>
 
         <button

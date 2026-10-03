@@ -8,6 +8,9 @@ import {
   Settings,
   LogIn,
   ShieldCheck,
+  FileSpreadsheet,
+  ClipboardPaste,
+  Check,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -17,6 +20,10 @@ interface NavbarProps {
   toggleSound: () => void;
   user: User | null;
   onGoogleSignIn: () => void;
+  onCopyAllForSheets?: () => void;
+  isCopiedAll?: boolean;
+  copyCount?: number;
+  onOpenPasteSheet?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -26,6 +33,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   toggleSound,
   user,
   onGoogleSignIn,
+  onCopyAllForSheets,
+  isCopiedAll,
+  copyCount = 0,
+  onOpenPasteSheet,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-[#080d17]/95 backdrop-blur-md border-b border-[#141f38]">
@@ -53,7 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Global Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Sound Mute/Unmute */}
           <button
             onClick={toggleSound}
@@ -66,6 +77,46 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
+
+          {/* Copy All to Google Sheets */}
+          {onCopyAllForSheets && (
+            <button
+              onClick={onCopyAllForSheets}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer font-bold text-xs shadow-sm ${
+                isCopiedAll
+                  ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500 shadow-emerald-950/40'
+                  : 'border-emerald-600/60 hover:border-emerald-400 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 shadow-emerald-950/20 active:scale-95'
+              }`}
+              title="คัดลอกข้อมูลบอสเฉพาะเซิร์ฟหลักในรูปแบบ [ชื่อบอส] [คูลดาว] [วันที่] [ชม] [นาที] ที่บอสตาย และเวลาเกิดใหม่ สำหรับวางใน Google Sheets"
+            >
+              {isCopiedAll ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden sm:inline">คัดลอกเซิร์ฟหลักแล้ว ({copyCount})!</span>
+                  <span className="sm:hidden">คัดลอกแล้ว</span>
+                </>
+              ) : (
+                <>
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden sm:inline">คัดลอกลงชีต</span>
+                  <span className="sm:hidden">คัดลอก</span>
+                </>
+              )}
+            </button>
+          )}
+
+          {/* Paste / Import from Google Sheets */}
+          {onOpenPasteSheet && (
+            <button
+              onClick={onOpenPasteSheet}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-teal-500/70 hover:border-teal-400 bg-teal-500/15 hover:bg-teal-500/25 active:scale-95 text-teal-300 hover:text-white font-bold text-xs transition-all cursor-pointer shadow-sm shadow-teal-950/30"
+              title="วางข้อมูลตารางบอสจาก Google Sheets เพื่ออัปเดตเวลาบอสจำนวนมาก"
+            >
+              <ClipboardPaste className="w-3.5 h-3.5 text-teal-400" />
+              <span className="hidden sm:inline">วางจากชีต</span>
+              <span className="sm:hidden">วางชีต</span>
+            </button>
+          )}
 
           {/* Add Boss Button */}
           <button
@@ -115,3 +166,4 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };
+
