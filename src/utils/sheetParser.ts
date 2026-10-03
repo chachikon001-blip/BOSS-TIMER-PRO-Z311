@@ -134,7 +134,17 @@ export function parseSheetData(
       ? line.split('\t').map((p) => p.trim())
       : line.split(/\s{2,}|\t/).map((p) => p.trim());
 
-    if (parts.length === 0 || !parts[0]) continue;
+    if (parts.length === 0 || (!parts[0] && parts.length === 1)) continue;
+
+    // Handle leading empty column in header "\tName\tHr..."
+    if (parts[0] === '' && parts.length > 1) {
+      parts = parts.slice(1);
+    }
+
+    // Handle row number in column A: [1, "เฟลิส - Felis", 2, "03/10/2026", 14, 26]
+    if (/^\d+$/.test(parts[0]) && parts.length >= 4) {
+      parts = parts.slice(1);
+    }
 
     // Handle spacer column B (e.g. from Sheet where column B is blank)
     // [Name, "", "Hr", "Date", "Hour", "Minute"] -> [Name, "Hr", "Date", "Hour", "Minute"]

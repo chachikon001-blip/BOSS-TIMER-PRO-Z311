@@ -1,8 +1,8 @@
 import { BossDefinition } from '../types';
 
 export const DEFAULT_BOSSES: BossDefinition[] = [
-  // 1. เฟลิส (Green 100%)
-  { bossNumber: 1, bossKey: 'felis', nameTh: 'เฟลิส', nameEn: 'Felis', cooldownHours: 2, rebootHours: null, spawnChance: '100%', location: 'ตามแมพ / พื้นที่ล่า' },
+  // 1. เฟลิส (Yellow 50%)
+  { bossNumber: 1, bossKey: 'felis', nameTh: 'เฟลิส', nameEn: 'Felis', cooldownHours: 2, rebootHours: null, spawnChance: '50%', location: 'ตามแมพ / พื้นที่ล่า' },
   // 2. ทิมิทริส (Green 100%)
   { bossNumber: 2, bossKey: 'timitris', nameTh: 'ทิมิทริส', nameEn: 'Timitris', cooldownHours: 5, rebootHours: null, spawnChance: '100%', location: 'ตามแมพ / พื้นที่ล่า' },
   // 3. คอร์ซัสเซปเตอร์ (Red 33%)

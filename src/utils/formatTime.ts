@@ -114,7 +114,7 @@ export const SHEET_BOSS_ORDER: string[] = [
 
 const RED_33_KEYS = new Set(['core', 'ant3', 'db', 'orfen', 'olkuth', 'rahha']);
 const YELLOW_50_KEYS = new Set([
-  'gahareth', 'matura', 'breka', 'tromba', 'enkura', 'kelsus',
+  'felis', 'gahareth', 'matura', 'breka', 'tromba', 'enkura', 'kelsus',
   'basila', 'pannarod', 'chertuba', 'valefar', 'talkin', 'selu',
   'balbo', 'repiro', 'hisilrome', 'cabrio', 'flynt', 'haff',
   'andras', 'tanatos'
@@ -368,11 +368,12 @@ export function getBossSheetRowData(boss: BossRecord) {
 }
 
 /**
- * Format a single boss into Tab-Separated string
+ * Format a single boss into Tab-Separated string matching the sheet columns:
+ * Col A: Index, Col B: Name, Col C: Hr., Col D: วันที่ตาย, Col E: ชม, Col F: นาที
  */
-export function formatBossForSheets(boss: BossRecord): string {
+export function formatBossForSheets(boss: BossRecord, index: number = 1): string {
   const row = getBossSheetRowData(boss);
-  return `${row.bossName}\t\t${row.cooldownStr}\t${row.dateStr}\t${row.hourStr}\t${row.minStr}\t☐`;
+  return `${index}\t${row.bossName}\t${row.cooldownStr}\t${row.dateStr}\t${row.hourStr}\t${row.minStr}`;
 }
 
 /**
@@ -380,21 +381,23 @@ export function formatBossForSheets(boss: BossRecord): string {
  */
 export function formatBossesForSheets(bosses: BossRecord[], includeHeader = true): string {
   const sorted = [...bosses].sort((a, b) => getSheetBossIndex(a) - getSheetBossIndex(b));
-  const rows = sorted.map(formatBossForSheets);
+  const rows = sorted.map((boss, idx) => formatBossForSheets(boss, idx + 1));
   if (includeHeader) {
-    return ['Name\t\tHr.\tวันที่ตาย\tชม\tนาที\tUpdate', ...rows].join('\n');
+    return ['\tName\tHr.\tวันที่ตาย\tชม\tนาที', ...rows].join('\n');
   }
   return rows.join('\n');
 }
 
 /**
  * Build rich HTML Table with exact background colors (Green, Yellow, Pink/Red) for Google Sheets paste
+ * Matching the exact columns in user's sheet:
+ * [Col A: Index] [Col B: Name] [Col C: Hr.] [Col D: วันที่ตาย] [Col E: ชม] [Col F: นาที]
  */
 export function buildColoredSheetHtml(bosses: BossRecord[]): string {
   const sorted = [...bosses].sort((a, b) => getSheetBossIndex(a) - getSheetBossIndex(b));
 
   const trRows = sorted
-    .map((boss) => {
+    .map((boss, idx) => {
       const row = getBossSheetRowData(boss);
       // In user's sheet: decimal cooldown (4.5, 3.5, 2.5, 7.5) and minute are red text
       const cdStyle = row.isDecimalCd
@@ -405,13 +408,12 @@ export function buildColoredSheetHtml(bosses: BossRecord[]): string {
         : 'color: #000000;';
 
       return `<tr style="background-color: ${row.bgColor};">
-  <td style="padding: 4px 8px; border: 1px solid #b7b7b7; text-align: left; color: #000000; font-family: Arial, sans-serif; font-size: 10pt;">${row.bossName}</td>
-  <td style="padding: 4px 6px; border: 1px solid #b7b7b7; background-color: ${row.bgColor};"></td>
+  <td style="padding: 4px 8px; border: 1px solid #b7b7b7; text-align: center; color: #000000; font-family: Arial, sans-serif; font-size: 10pt;">${idx + 1}</td>
+  <td style="padding: 4px 10px; border: 1px solid #b7b7b7; text-align: left; color: #000000; font-family: Arial, sans-serif; font-size: 10pt;">${row.bossName}</td>
   <td style="padding: 4px 8px; border: 1px solid #b7b7b7; text-align: center; ${cdStyle} font-family: Arial, sans-serif; font-size: 10pt;">${row.cooldownStr}</td>
   <td style="padding: 4px 8px; border: 1px solid #b7b7b7; text-align: center; color: #000000; font-family: Arial, sans-serif; font-size: 10pt;">${row.dateStr}</td>
   <td style="padding: 4px 8px; border: 1px solid #b7b7b7; text-align: center; color: #000000; font-family: Arial, sans-serif; font-size: 10pt;">${row.hourStr}</td>
   <td style="padding: 4px 8px; border: 1px solid #b7b7b7; text-align: center; ${minStyle} font-family: Arial, sans-serif; font-size: 10pt;">${row.minStr}</td>
-  <td style="padding: 4px 8px; border: 1px solid #b7b7b7; text-align: center; color: #800080; font-family: Arial, sans-serif; font-size: 11pt;">☐</td>
 </tr>`;
     })
     .join('\n');
@@ -420,13 +422,12 @@ export function buildColoredSheetHtml(bosses: BossRecord[]): string {
 <table style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 10pt; width: 100%;">
   <thead>
     <tr style="background-color: #cfe2f3; font-weight: bold; text-align: center; color: #000000;">
-      <th style="padding: 6px 12px; border: 1px solid #b7b7b7; text-align: left;">Name</th>
-      <th style="padding: 6px 6px; border: 1px solid #b7b7b7;"></th>
+      <th style="padding: 6px 8px; border: 1px solid #b7b7b7; width: 45px;"></th>
+      <th style="padding: 6px 14px; border: 1px solid #b7b7b7; text-align: left;">Name</th>
       <th style="padding: 6px 10px; border: 1px solid #b7b7b7;">Hr.</th>
       <th style="padding: 6px 10px; border: 1px solid #b7b7b7;">วันที่ตาย</th>
       <th style="padding: 6px 10px; border: 1px solid #b7b7b7;">ชม</th>
       <th style="padding: 6px 10px; border: 1px solid #b7b7b7;">นาที</th>
-      <th style="padding: 6px 10px; border: 1px solid #b7b7b7;">Update</th>
     </tr>
   </thead>
   <tbody>
