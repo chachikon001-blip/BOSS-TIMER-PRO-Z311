@@ -2,7 +2,9 @@ import { BossRecord } from '../types';
 
 export class DiscordService {
   /**
-   * Send notification via backend proxy endpoint to prevent CORS restrictions
+   * Send notification to Discord Webhook
+   * Uses direct client-side fetch (supported by Discord API CORS)
+   * with automatic server proxy fallback
    */
   public static async sendWebhook(
     webhookUrl: string,
@@ -11,45 +13,84 @@ export class DiscordService {
       embeds?: any[];
     }
   ): Promise<{ success: boolean; error?: string }> {
-    if (!webhookUrl || !webhookUrl.trim().startsWith('https://discord.com/api/webhooks/')) {
-      return { success: false, error: 'URL Discord Webhook ไม่ถูกต้อง' };
+    const cleanUrl = webhookUrl ? webhookUrl.trim() : '';
+    if (!cleanUrl || !cleanUrl.startsWith('https://discord.com/api/webhooks/')) {
+      return {
+        success: false,
+        error: 'URL Discord Webhook ไม่ถูกต้อง (ต้องขึ้นต้นด้วย https://discord.com/api/webhooks/)',
+      };
     }
 
+    // 1. First attempt: Direct fetch to Discord API (Discord natively supports CORS POST)
     try {
-      // First attempt: call local server proxy
-      const response = await fetch('/api/discord-notify', {
+      const directResp = await fetch(cleanUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          webhookUrl: webhookUrl.trim(),
           content: payload.content || '',
           embeds: payload.embeds || [],
         }),
       });
 
-      if (response.ok) {
+      if (directResp.ok || directResp.status === 204) {
         return { success: true };
       }
 
-      // If proxy response was not ok, try direct fetch as fallback (or return error message)
-      const errData = await response.json().catch(() => ({}));
+      // Handle specific Discord HTTP status codes
+      if (directResp.status === 404) {
+        return {
+          success: false,
+          error: 'ไม่พบ Webhook นี้ใน Discord (404 Unknown Webhook) กรุณาตรวจสอบว่าคัดลอก URL ครบถ้วน หรือ Webhook ในห้องแชทถูกลบแล้วหรือไม่',
+        };
+      }
+      if (directResp.status === 401) {
+        return {
+          success: false,
+          error: 'รหัสโทเค็น Webhook ไม่ถูกต้อง (401 Unauthorized)',
+        };
+      }
+
+      const errData = await directResp.json().catch(() => null);
+      if (errData && errData.message) {
+        return {
+          success: false,
+          error: `Discord: ${errData.message}`,
+        };
+      }
       return {
         success: false,
-        error: errData.error || `HTTP error ${response.status}`,
+        error: `Discord HTTP error ${directResp.status}`,
       };
-    } catch (e: any) {
-      console.warn('Backend proxy call failed, attempting direct fetch fallback:', e);
-      try {
-        const directResp = await fetch(webhookUrl.trim(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (directResp.ok) return { success: true };
-        return { success: false, error: 'Direct fetch failed' };
-      } catch (directErr: any) {
-        return { success: false, error: directErr?.message || 'ส่งข้อความไม่สำเร็จ' };
+    } catch (directErr: any) {
+      console.warn('Direct Discord fetch failed, trying proxy fallback:', directErr);
+    }
+
+    // 2. Second attempt: Fallback through backend /api/discord-notify proxy
+    try {
+      const proxyResp = await fetch('/api/discord-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          webhookUrl: cleanUrl,
+          content: payload.content || '',
+          embeds: payload.embeds || [],
+        }),
+      });
+
+      if (proxyResp.ok) {
+        return { success: true };
       }
+
+      const errData = await proxyResp.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errData.error || `Proxy error ${proxyResp.status}`,
+      };
+    } catch (proxyErr: any) {
+      return {
+        success: false,
+        error: 'ไม่สามารถเชื่อมต่อส่งข้อความเข้า Discord ได้ กรุณาตรวจสอบอินเทอร์เน็ตหรือ URL Webhook',
+      };
     }
   }
 

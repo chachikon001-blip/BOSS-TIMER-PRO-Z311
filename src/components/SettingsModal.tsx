@@ -14,6 +14,9 @@ import {
   LogOut,
   Database,
   Radio,
+  Copy,
+  Check,
+  Trash2,
 } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -39,8 +42,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [testDiscordStatus, setTestDiscordStatus] = useState<{ [key: string]: string | null }>({});
   const [isTestingDiscord, setIsTestingDiscord] = useState<{ [key: string]: boolean }>({});
   const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleCopyUrl = (key: string, url: string) => {
+    if (!url) return;
+    navigator.clipboard.writeText(url);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
 
   const handleLeadMinuteToggle = (minute: number) => {
     setFormData((prev) => {
@@ -192,28 +203,64 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </label>
                 <span className="text-[10px] text-stone-500 font-mono">ห้อง Discord 1</span>
               </div>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  placeholder="https://discord.com/api/webhooks/... (ห้องเซิร์ฟหลัก)"
-                  value={formData.server1WebhookUrl || ''}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, server1WebhookUrl: e.target.value }))
-                  }
-                  className="flex-1 bg-[#090d17] border border-[#1b2b4e] rounded-lg px-3 py-2 text-xs text-stone-100 font-mono focus:outline-none focus:border-sky-500"
-                />
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleTestSpecificDiscord('s1', formData.server1WebhookUrl, `เซิร์ฟหลัก ${formData.server1Tag}`)
-                  }
-                  disabled={isTestingDiscord['s1'] || !formData.server1WebhookUrl}
-                  className="px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0"
-                >
-                  <Radio className={`w-3.5 h-3.5 ${isTestingDiscord['s1'] ? 'animate-spin' : ''}`} />
-                  <span>ทดสอบส่ง</span>
-                </button>
+
+              {/* Full view textarea */}
+              <textarea
+                rows={2}
+                placeholder="วางลิงก์ https://discord.com/api/webhooks/... ที่นี่ (ห้องเซิร์ฟหลัก)"
+                value={formData.server1WebhookUrl || ''}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, server1WebhookUrl: e.target.value.trim() }))
+                }
+                className="w-full bg-[#090d17] border border-[#1b2b4e] rounded-lg p-2.5 text-xs text-sky-200 font-mono focus:outline-none focus:border-sky-500 break-all leading-relaxed resize-none shadow-inner"
+              />
+
+              <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+                <div className="text-[11px] text-stone-500 font-mono flex items-center gap-1.5">
+                  <span>ความยาว: {formData.server1WebhookUrl ? `${formData.server1WebhookUrl.length} ตัวอักษร` : '0 ตัวอักษร'}</span>
+                  {formData.server1WebhookUrl && formData.server1WebhookUrl.length < 80 && (
+                    <span className="text-amber-400 font-sans text-[10px]">⚠️ ลิงก์สั้นกว่าปกติ (มักมี ~120 ตัว)</span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  {formData.server1WebhookUrl && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyUrl('s1', formData.server1WebhookUrl || '')}
+                        className="px-2 py-1 text-stone-400 hover:text-stone-200 hover:bg-stone-800 rounded text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                        title="คัดลอกลิงก์"
+                      >
+                        {copiedKey === 's1' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedKey === 's1' ? 'คัดลอกแล้ว' : 'คัดลอก'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, server1WebhookUrl: '' }))}
+                        className="px-2 py-1 text-stone-400 hover:text-rose-400 hover:bg-stone-800 rounded text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                        title="ลบออก"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>ลบ</span>
+                      </button>
+                    </>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleTestSpecificDiscord('s1', formData.server1WebhookUrl, `เซิร์ฟหลัก ${formData.server1Tag}`)
+                    }
+                    disabled={isTestingDiscord['s1'] || !formData.server1WebhookUrl}
+                    className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0 shadow-sm"
+                  >
+                    <Radio className={`w-3.5 h-3.5 ${isTestingDiscord['s1'] ? 'animate-spin' : ''}`} />
+                    <span>ทดสอบส่ง</span>
+                  </button>
+                </div>
               </div>
+
               {testDiscordStatus['s1'] && (
                 <div
                   className={`text-xs p-2 rounded flex items-center gap-1.5 ${
@@ -236,28 +283,64 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </label>
                 <span className="text-[10px] text-stone-500 font-mono">ห้อง Discord 2</span>
               </div>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  placeholder="https://discord.com/api/webhooks/... (ห้องเซิร์ฟรอง)"
-                  value={formData.server2WebhookUrl || ''}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, server2WebhookUrl: e.target.value }))
-                  }
-                  className="flex-1 bg-[#090d17] border border-[#1b2b4e] rounded-lg px-3 py-2 text-xs text-stone-100 font-mono focus:outline-none focus:border-purple-500"
-                />
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleTestSpecificDiscord('s2', formData.server2WebhookUrl, `เซิร์ฟรอง ${formData.server2Tag}`)
-                  }
-                  disabled={isTestingDiscord['s2'] || !formData.server2WebhookUrl}
-                  className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0"
-                >
-                  <Radio className={`w-3.5 h-3.5 ${isTestingDiscord['s2'] ? 'animate-spin' : ''}`} />
-                  <span>ทดสอบส่ง</span>
-                </button>
+
+              {/* Full view textarea */}
+              <textarea
+                rows={2}
+                placeholder="วางลิงก์ https://discord.com/api/webhooks/... ที่นี่ (ห้องเซิร์ฟรอง)"
+                value={formData.server2WebhookUrl || ''}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, server2WebhookUrl: e.target.value.trim() }))
+                }
+                className="w-full bg-[#090d17] border border-[#1b2b4e] rounded-lg p-2.5 text-xs text-purple-200 font-mono focus:outline-none focus:border-purple-500 break-all leading-relaxed resize-none shadow-inner"
+              />
+
+              <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+                <div className="text-[11px] text-stone-500 font-mono flex items-center gap-1.5">
+                  <span>ความยาว: {formData.server2WebhookUrl ? `${formData.server2WebhookUrl.length} ตัวอักษร` : '0 ตัวอักษร'}</span>
+                  {formData.server2WebhookUrl && formData.server2WebhookUrl.length < 80 && (
+                    <span className="text-amber-400 font-sans text-[10px]">⚠️ ลิงก์สั้นกว่าปกติ (มักมี ~120 ตัว)</span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  {formData.server2WebhookUrl && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyUrl('s2', formData.server2WebhookUrl || '')}
+                        className="px-2 py-1 text-stone-400 hover:text-stone-200 hover:bg-stone-800 rounded text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                        title="คัดลอกลิงก์"
+                      >
+                        {copiedKey === 's2' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedKey === 's2' ? 'คัดลอกแล้ว' : 'คัดลอก'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, server2WebhookUrl: '' }))}
+                        className="px-2 py-1 text-stone-400 hover:text-rose-400 hover:bg-stone-800 rounded text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                        title="ลบออก"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>ลบ</span>
+                      </button>
+                    </>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleTestSpecificDiscord('s2', formData.server2WebhookUrl, `เซิร์ฟรอง ${formData.server2Tag}`)
+                    }
+                    disabled={isTestingDiscord['s2'] || !formData.server2WebhookUrl}
+                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0 shadow-sm"
+                  >
+                    <Radio className={`w-3.5 h-3.5 ${isTestingDiscord['s2'] ? 'animate-spin' : ''}`} />
+                    <span>ทดสอบส่ง</span>
+                  </button>
+                </div>
               </div>
+
               {testDiscordStatus['s2'] && (
                 <div
                   className={`text-xs p-2 rounded flex items-center gap-1.5 ${
@@ -278,28 +361,61 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   Webhook URL ห้องรวมทั้ง 2 เซิร์ฟ หรือห้องสำรอง (ไม่บังคับ)
                 </label>
               </div>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  placeholder="https://discord.com/api/webhooks/... (ห้องรวม)"
-                  value={formData.discordWebhookUrl}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, discordWebhookUrl: e.target.value }))
-                  }
-                  className="flex-1 bg-[#090d17] border border-stone-700 rounded-lg px-3 py-2 text-xs text-stone-100 font-mono focus:outline-none focus:border-indigo-500"
-                />
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleTestSpecificDiscord('main', formData.discordWebhookUrl, 'ห้องรวม')
-                  }
-                  disabled={isTestingDiscord['main'] || !formData.discordWebhookUrl}
-                  className="px-3 py-2 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0"
-                >
-                  <Radio className={`w-3.5 h-3.5 ${isTestingDiscord['main'] ? 'animate-spin' : ''}`} />
-                  <span>ทดสอบ</span>
-                </button>
+
+              {/* Full view textarea */}
+              <textarea
+                rows={2}
+                placeholder="วางลิงก์ https://discord.com/api/webhooks/... ที่นี่ (ห้องรวม)"
+                value={formData.discordWebhookUrl || ''}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, discordWebhookUrl: e.target.value.trim() }))
+                }
+                className="w-full bg-[#090d17] border border-stone-700 rounded-lg p-2.5 text-xs text-stone-100 font-mono focus:outline-none focus:border-indigo-500 break-all leading-relaxed resize-none shadow-inner"
+              />
+
+              <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+                <div className="text-[11px] text-stone-500 font-mono flex items-center gap-1.5">
+                  <span>ความยาว: {formData.discordWebhookUrl ? `${formData.discordWebhookUrl.length} ตัวอักษร` : '0 ตัวอักษร'}</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  {formData.discordWebhookUrl && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyUrl('main', formData.discordWebhookUrl || '')}
+                        className="px-2 py-1 text-stone-400 hover:text-stone-200 hover:bg-stone-800 rounded text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                        title="คัดลอกลิงก์"
+                      >
+                        {copiedKey === 'main' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedKey === 'main' ? 'คัดลอกแล้ว' : 'คัดลอก'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, discordWebhookUrl: '' }))}
+                        className="px-2 py-1 text-stone-400 hover:text-rose-400 hover:bg-stone-800 rounded text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                        title="ลบออก"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>ลบ</span>
+                      </button>
+                    </>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleTestSpecificDiscord('main', formData.discordWebhookUrl, 'ห้องรวม')
+                    }
+                    disabled={isTestingDiscord['main'] || !formData.discordWebhookUrl}
+                    className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0 shadow-sm"
+                  >
+                    <Radio className={`w-3.5 h-3.5 ${isTestingDiscord['main'] ? 'animate-spin' : ''}`} />
+                    <span>ทดสอบส่ง</span>
+                  </button>
+                </div>
               </div>
+
               {testDiscordStatus['main'] && (
                 <div
                   className={`text-xs p-2 rounded flex items-center gap-1.5 ${
