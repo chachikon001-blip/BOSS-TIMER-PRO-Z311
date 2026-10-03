@@ -117,6 +117,7 @@ function generateInitialBossList(
         location: b.location || 'ตามแมพ / พื้นที่ล่า',
         cooldownHours: b.cooldownHours,
         rebootHours: b.rebootHours,
+        spawnChance: b.spawnChance || '100%',
         lastKilledAt,
         nextSpawnAt,
         updatedBy: 'ระบบเริ่มต้น',
@@ -157,7 +158,13 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved) as BossRecord[];
         if (Array.isArray(parsed) && parsed.length >= 40) {
-          return parsed;
+          return parsed.map((p) => {
+            const def = DEFAULT_BOSSES.find((db) => db.bossKey === p.bossKey);
+            return {
+              ...p,
+              spawnChance: p.spawnChance || def?.spawnChance || '100%',
+            };
+          });
         }
       }
     } catch (e) {
@@ -220,6 +227,8 @@ export default function App() {
         if (!snapshot.empty) {
           snapshot.forEach((docSnap) => {
             const data = docSnap.data() as BossRecord;
+            const def = DEFAULT_BOSSES.find((db) => db.bossKey === data.bossKey);
+            data.spawnChance = data.spawnChance || def?.spawnChance || '100%';
             data.isFavorite = favorites.has(data.id);
             map.set(data.id, data);
           });

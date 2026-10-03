@@ -14,7 +14,7 @@ import {
   Shield,
   Zap,
 } from 'lucide-react';
-import { formatHoursAndMinutes } from '../utils/formatTime';
+import { formatHoursAndMinutes, getBossSpawnRateCategory } from '../utils/formatTime';
 
 interface CustomTimeModalProps {
   boss: BossRecord | null;
@@ -152,10 +152,11 @@ export const CustomTimeModal: React.FC<CustomTimeModalProps> = ({
   const lastKilledDiff = getTimeDiff(boss.lastKilledAt);
   const currentSpawnDiff = getTimeDiff(boss.nextSpawnAt);
   const nextSpawnInfo = previewSpawnInfo();
+  const spawnRate = getBossSpawnRateCategory(boss);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
-      <div className="relative w-full max-w-xl bg-[#0c1222] border border-[#1b2b4e] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="relative w-full max-w-2xl bg-[#0c1222] border border-[#1b2b4e] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#16233f] bg-[#0e1628] flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -163,12 +164,27 @@ export const CustomTimeModal: React.FC<CustomTimeModalProps> = ({
               <Skull className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base font-extrabold text-white">
                   ข้อมูลบอส & ระบุเวลาตาย
                 </h2>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-stone-800 text-stone-300 border border-stone-700">
                   #{boss.bossNumber || '-'}
+                </span>
+                {/* Spawn Chance Badge */}
+                <span
+                  className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1 ${spawnRate.badgeBg} ${spawnRate.badgeText} ${spawnRate.badgeBorder}`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      spawnRate.rate === '100%'
+                        ? 'bg-emerald-400'
+                        : spawnRate.rate === '50%'
+                        ? 'bg-amber-400'
+                        : 'bg-rose-400'
+                    }`}
+                  />
+                  <span>{spawnRate.label}</span>
                 </span>
               </div>
               <p className="text-xs text-stone-400 flex items-center gap-1.5 mt-0.5">
@@ -204,7 +220,7 @@ export const CustomTimeModal: React.FC<CustomTimeModalProps> = ({
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {/* Card 1: เวลาตายล่าสุด */}
               <div className="p-3 rounded-xl bg-[#080d19] border border-[#182746] space-y-1">
                 <div className="flex items-center justify-between text-[11px] text-stone-400">
@@ -278,6 +294,40 @@ export const CustomTimeModal: React.FC<CustomTimeModalProps> = ({
                   ) : (
                     <span className="text-stone-500">ไม่มีรอบรีบูทพิเศษ</span>
                   )}
+                </div>
+              </div>
+
+              {/* Card 4: โอกาสบอสเกิด */}
+              <div
+                className={`p-3 rounded-xl border space-y-1 ${
+                  spawnRate.rate === '100%'
+                    ? 'bg-emerald-950/20 border-emerald-500/30'
+                    : spawnRate.rate === '50%'
+                    ? 'bg-amber-950/20 border-amber-500/30'
+                    : 'bg-rose-950/20 border-rose-500/30'
+                }`}
+              >
+                <div className="flex items-center justify-between text-[11px] text-stone-400">
+                  <span className="flex items-center gap-1 font-semibold text-stone-300">
+                    <Shield className="w-3.5 h-3.5 text-sky-400" />
+                    <span>โอกาสบอสเกิด</span>
+                  </span>
+                </div>
+                <div
+                  className={`font-mono text-xs font-bold ${
+                    spawnRate.rate === '100%'
+                      ? 'text-emerald-400'
+                      : spawnRate.rate === '50%'
+                      ? 'text-amber-400'
+                      : 'text-rose-400'
+                  }`}
+                >
+                  {spawnRate.label}
+                </div>
+                <div className="text-[10px] text-stone-400">
+                  {spawnRate.rate === '100%' && <span>สีเขียวในชีต (เกิดแน่นอน)</span>}
+                  {spawnRate.rate === '50%' && <span>สีเหลืองในชีต (สุ่มเกิด 50%)</span>}
+                  {spawnRate.rate === '33%' && <span>สีแดงในชีต (สุ่มเกิด 33%)</span>}
                 </div>
               </div>
             </div>

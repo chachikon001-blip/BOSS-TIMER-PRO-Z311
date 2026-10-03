@@ -112,6 +112,14 @@ export const SHEET_BOSS_ORDER: string[] = [
   'rahha', // 45. ลาฮา - Rahha
 ];
 
+const RED_33_KEYS = new Set(['core', 'ant3', 'db', 'orfen', 'olkuth', 'rahha']);
+const YELLOW_50_KEYS = new Set([
+  'gahareth', 'matura', 'breka', 'tromba', 'enkura', 'kelsus',
+  'basila', 'pannarod', 'chertuba', 'valefar', 'talkin', 'selu',
+  'balbo', 'repiro', 'hisilrome', 'cabrio', 'flynt', 'haff',
+  'andras', 'tanatos'
+]);
+
 /**
  * Determine spawn rate category and Google Sheet background color:
  * - Green (#d9ead3) = 100% spawn chance
@@ -122,50 +130,107 @@ export function getBossSpawnRateCategory(boss: BossRecord): {
   rate: '100%' | '50%' | '33%';
   bgColor: string;
   label: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
 } {
+  if (boss.spawnChance === '33%') {
+    return {
+      rate: '33%',
+      bgColor: '#f4cccc',
+      label: 'โอกาสเกิด 33%',
+      badgeBg: 'bg-rose-950/60',
+      badgeText: 'text-rose-300',
+      badgeBorder: 'border-rose-500/40',
+    };
+  }
+  if (boss.spawnChance === '50%') {
+    return {
+      rate: '50%',
+      bgColor: '#fff2cc',
+      label: 'โอกาสเกิด 50%',
+      badgeBg: 'bg-amber-950/60',
+      badgeText: 'text-amber-300',
+      badgeBorder: 'border-amber-500/40',
+    };
+  }
+  if (boss.spawnChance === '100%') {
+    return {
+      rate: '100%',
+      bgColor: '#d9ead3',
+      label: 'บอสเกิด 100%',
+      badgeBg: 'bg-emerald-950/60',
+      badgeText: 'text-emerald-300',
+      badgeBorder: 'border-emerald-500/40',
+    };
+  }
+
+  // Fallback by key / name
   const normKey = (boss.bossKey || '').toLowerCase();
+  if (RED_33_KEYS.has(normKey)) {
+    return {
+      rate: '33%',
+      bgColor: '#f4cccc',
+      label: 'โอกาสเกิด 33%',
+      badgeBg: 'bg-rose-950/60',
+      badgeText: 'text-rose-300',
+      badgeBorder: 'border-rose-500/40',
+    };
+  }
+  if (YELLOW_50_KEYS.has(normKey)) {
+    return {
+      rate: '50%',
+      bgColor: '#fff2cc',
+      label: 'โอกาสเกิด 50%',
+      badgeBg: 'bg-amber-950/60',
+      badgeText: 'text-amber-300',
+      badgeBorder: 'border-amber-500/40',
+    };
+  }
+
   const normTh = (boss.nameTh || '').toLowerCase();
   const normEn = (boss.nameEn || '').toLowerCase();
   const combined = `${normKey} ${normTh} ${normEn}`;
 
-  // 33% (สีแดง/ชมพู #f4cccc)
-  // คอร์ซัสเซปเตอร์, ลิลลี่, มด 3, ดราก้อนบีสต์, ออร์เฟน, เรปิโร, โอล์คุส, ทานาทอส, ลาฮา
-  const redKeywords = [
-    'core', 'คอร์', 'คอร์ซัส',
-    'lily', 'ลิลลี่',
-    'ant3', 'มด 3', 'มด3', 'ant',
-    'db', 'ดราก้อน', 'dragon',
-    'orfen', 'ออร์เฟน',
-    'repiro', 'เรปิโร',
-    'olkuth', 'โอล์คุส',
-    'tanatos', 'ทานาทอส',
-    'rahha', 'ลาฮา'
-  ];
-
-  for (const r of redKeywords) {
-    if (combined.includes(r)) {
-      return { rate: '33%', bgColor: '#f4cccc', label: 'โอกาสเกิด 33%' };
-    }
+  if (
+    combined.includes('core') || combined.includes('คอร์') ||
+    combined.includes('ant3') || combined.includes('มด 3') || combined.includes('มด3') ||
+    combined.includes('db') || combined.includes('ดราก้อน') ||
+    combined.includes('orfen') || combined.includes('ออร์เฟน') ||
+    combined.includes('olkuth') || combined.includes('โอล์คุส') ||
+    combined.includes('rahha') || combined.includes('ลาฮา')
+  ) {
+    return {
+      rate: '33%',
+      bgColor: '#f4cccc',
+      label: 'โอกาสเกิด 33%',
+      badgeBg: 'bg-rose-950/60',
+      badgeText: 'text-rose-300',
+      badgeBorder: 'border-rose-500/40',
+    };
   }
 
-  // 50% (สีเหลือง #fff2cc)
-  // ซาบัน, แกเร็ธ, ทรอมบา, เอนคูรา, เคลซอส
-  const yellowKeywords = [
-    'savan', 'ซาบัน',
-    'gahareth', 'แกเร็ธ',
-    'tromba', 'ทรอมบา',
-    'enkura', 'เอนคูรา',
-    'kelsus', 'เคลซอส'
-  ];
-
-  for (const y of yellowKeywords) {
+  for (const y of YELLOW_50_KEYS) {
     if (combined.includes(y)) {
-      return { rate: '50%', bgColor: '#fff2cc', label: 'โอกาสเกิด 50%' };
+      return {
+        rate: '50%',
+        bgColor: '#fff2cc',
+        label: 'โอกาสเกิด 50%',
+        badgeBg: 'bg-amber-950/60',
+        badgeText: 'text-amber-300',
+        badgeBorder: 'border-amber-500/40',
+      };
     }
   }
 
-  // 100% (สีเขียว #d9ead3)
-  return { rate: '100%', bgColor: '#d9ead3', label: 'บอสเกิด 100%' };
+  return {
+    rate: '100%',
+    bgColor: '#d9ead3',
+    label: 'บอสเกิด 100%',
+    badgeBg: 'bg-emerald-950/60',
+    badgeText: 'text-emerald-300',
+    badgeBorder: 'border-emerald-500/40',
+  };
 }
 
 /**

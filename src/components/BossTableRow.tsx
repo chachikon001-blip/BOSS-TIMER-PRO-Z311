@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BossRecord } from '../types';
-import { formatHoursAndMinutes, formatBossForSheets } from '../utils/formatTime';
+import { formatHoursAndMinutes, formatBossForSheets, getBossSpawnRateCategory } from '../utils/formatTime';
 import {
   Star,
   Clock,
@@ -135,6 +135,7 @@ export const BossTableRow: React.FC<BossTableRowProps> = ({
   };
 
   const isServer1 = boss.serverId === 'server_1';
+  const spawnRate = getBossSpawnRateCategory(boss);
 
   return (
     <tr
@@ -190,6 +191,23 @@ export const BossTableRow: React.FC<BossTableRowProps> = ({
               <Swords className="w-3.5 h-3.5 text-purple-400" />
             )}
             <span>{boss.serverName}</span>
+          </span>
+
+          {/* Spawn Chance Badge */}
+          <span
+            className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1 shadow-sm ${spawnRate.badgeBg} ${spawnRate.badgeText} ${spawnRate.badgeBorder}`}
+            title={`โอกาสเกิด: ${spawnRate.rate} (${spawnRate.label})`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                spawnRate.rate === '100%'
+                  ? 'bg-emerald-400'
+                  : spawnRate.rate === '50%'
+                  ? 'bg-amber-400'
+                  : 'bg-rose-400'
+              }`}
+            />
+            <span>{spawnRate.label}</span>
           </span>
 
           {boss.isCustom && (

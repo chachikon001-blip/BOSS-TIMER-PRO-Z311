@@ -10,6 +10,7 @@ export interface BossDefinition {
   cooldownHours: number;
   rebootHours: number | null;
   location?: string;
+  spawnChance?: '100%' | '50%' | '33%';
 }
 
 export interface BossRecord {
@@ -24,6 +25,7 @@ export interface BossRecord {
   location?: string; // 'ตามแมพ / พื้นที่ล่า'
   cooldownHours: number;
   rebootHours?: number | null;
+  spawnChance?: '100%' | '50%' | '33%';
   lastKilledAt?: string | null; // ISO string
   nextSpawnAt?: string | null; // ISO string or null ('--:-- น.')
   updatedBy?: string;

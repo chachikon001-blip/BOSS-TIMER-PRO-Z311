@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BossRecord } from '../types';
-import { formatHoursAndMinutes, formatBossForSheets } from '../utils/formatTime';
+import { formatHoursAndMinutes, formatBossForSheets, getBossSpawnRateCategory } from '../utils/formatTime';
 import {
   Clock,
   RotateCcw,
@@ -136,6 +136,7 @@ export const BossCard: React.FC<BossCardProps> = ({
   };
 
   const isServer1 = boss.serverId === 'server_1';
+  const spawnRate = getBossSpawnRateCategory(boss);
 
   return (
     <div
@@ -172,6 +173,24 @@ export const BossCard: React.FC<BossCardProps> = ({
                 <span>{boss.serverName}</span>
               </span>
             )}
+
+            {/* Spawn Chance Badge */}
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 shadow-sm ${spawnRate.badgeBg} ${spawnRate.badgeText} ${spawnRate.badgeBorder}`}
+              title={`โอกาสเกิด: ${spawnRate.rate} (${spawnRate.label})`}
+            >
+              <span
+                className={`w-1 h-1 rounded-full ${
+                  spawnRate.rate === '100%'
+                    ? 'bg-emerald-400'
+                    : spawnRate.rate === '50%'
+                    ? 'bg-amber-400'
+                    : 'bg-rose-400'
+                }`}
+              />
+              <span>{spawnRate.label}</span>
+            </span>
+
             {boss.isCustom && (
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-0.5">
                 <Sparkles className="w-2.5 h-2.5" /> กำหนดเอง
